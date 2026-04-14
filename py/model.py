@@ -351,6 +351,34 @@ class MLP(nn.Module):
         return x
 
 
+class GatedMLP(nn.Module):
+    """
+    Gated FFN (SwiGLU) as used in LLaMA/Gemma.
+
+    Instead of:  GELU(x @ W_fc) @ W_proj
+    Computes:    SiLU(x @ W_gate) * (x @ W_up) @ W_down
+
+    The gate projection learns which features to activate (binary-ish via
+    SiLU), while the up projection computes the feature values. This
+    separation is what LARQL indexes — each row of W_gate corresponds to
+    a queryable feature.
+
+    With intermediate_size = (2/3) * 4 * n_embd (rounded to multiple of
+    256), this has approximately the same parameter count as standard MLP.
+    """
+
+    def __init__(self, config):
+        super().__init__()
+        intermediate = getattr(config, 'intermediate_size', None) or int(round(8 / 3 * config.n_embd / 256)) * 256
+        self.gate_proj = nn.Linear(config.n_embd, intermediate, bias=config.bias)
+        self.up_proj   = nn.Linear(config.n_embd, intermediate, bias=config.bias)
+        self.down_proj = nn.Linear(intermediate, config.n_embd, bias=config.bias)
+        self.dropout   = nn.Dropout(config.dropout)
+
+    def forward(self, x):
+        return self.dropout(self.down_proj(F.silu(self.gate_proj(x)) * self.up_proj(x)))
+
+
 class Block(nn.Module):
 
     def __init__(self, config):
@@ -364,7 +392,10 @@ class Block(nn.Module):
         else:
             self.attn = CausalSelfAttention(config)
         self.ln_2 = LayerNorm(config.n_embd, bias=config.bias)
-        self.mlp = MLP(config)
+        if getattr(config, 'use_gated_mlp', False):
+            self.mlp = GatedMLP(config)
+        else:
+            self.mlp = MLP(config)
 
     def forward(self, x):
         x = x + self.attn(self.ln_1(x))
@@ -386,6 +417,8 @@ class GPTConfig:
     tie_weights: bool = True  # Tie input embeddings to output projection
     no_gelu: bool = False  # Disable GELU nonlinearity in MLP (makes it purely linear)
     autocorr_top_k: int = None  # Number of top lags for autocorrelation (None = all)
+    use_gated_mlp: bool = False  # Set True to use SwiGLU gated FFN (LARQL-compatible)
+    intermediate_size: int = None  # Gated MLP intermediate dim (default: round(8/3 * n_embd))
 
 
 class GPT(nn.Module):
@@ -411,7 +444,7 @@ class GPT(nn.Module):
         self.apply(self._init_weights)
         # apply special scaled init to the residual projections, per GPT-2 paper
         for pn, p in self.named_parameters():
-            if pn.endswith('c_proj.weight'):
+            if pn.endswith('c_proj.weight') or pn.endswith('down_proj.weight'):
                 torch.nn.init.normal_(p, mean=0.0, std=0.02/math.sqrt(2 * config.n_layer))
 
         # report number of parameters
@@ -422,7 +455,8 @@ class GPT(nn.Module):
         else:
             attn_type = "softmax"
         tie_status = "tied" if getattr(config, 'tie_weights', True) else "untied"
-        print(f"number of parameters: %.2fM ({attn_type} attention, {tie_status} weights)" % (self.get_num_params()/1e6,))
+        mlp_type = "gated SwiGLU" if getattr(config, 'use_gated_mlp', False) else "standard"
+        print(f"number of parameters: %.2fM ({attn_type} attention, {mlp_type} MLP, {tie_status} weights)" % (self.get_num_params()/1e6,))
 
     def get_num_params(self, non_embedding=True):
         """
