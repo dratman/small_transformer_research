@@ -1,0 +1,18 @@
+# Model checkpoints (large, 8-10GB each)
+pt/
+
+# Training corpus (large, ~8GB)
+txt_local/
+
+# Training output logs
+terminal_logs/
+
+# Generated plots
+plots/
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
