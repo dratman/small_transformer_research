@@ -193,6 +193,29 @@ def split_paragraphs(text):
     return [p.strip() for p in paragraphs if len(p.strip()) >= 50]
 
 
+# Common English function words for language detection
+ENGLISH_FUNCTION_WORDS = frozenset({
+    'the', 'and', 'of', 'to', 'a', 'in', 'is', 'was', 'that', 'it',
+    'he', 'she', 'his', 'her', 'for', 'with', 'not', 'but', 'had',
+    'have', 'are', 'be', 'on', 'at', 'by', 'from', 'this', 'which',
+    'an', 'or', 'as', 'were', 'been', 'has', 'their', 'would', 'they',
+    'we', 'if', 'my', 'no', 'so', 'did', 'its',
+})
+
+ENGLISH_MIN_RATIO = 0.10
+
+
+def is_english(text):
+    """Return True if text appears to be English based on function word frequency.
+    English prose typically has 35-42% function words. Non-English is under 2%.
+    Threshold is set at 10% to be safe."""
+    words = text.split()
+    if len(words) < 100:
+        return True  # too short to judge, keep it
+    eng_count = sum(1 for w in words if w in ENGLISH_FUNCTION_WORDS)
+    return (eng_count / len(words)) >= ENGLISH_MIN_RATIO
+
+
 def main():
     parser = argparse.ArgumentParser(description='Rebuild cleaned Gutenberg corpus')
     parser.add_argument('--texts_dir', required=True, help='Directory containing individual Gutenberg text files')
@@ -237,6 +260,7 @@ def main():
     total_chars = 0
     processed = 0
     skipped = 0
+    non_english = 0
     start_time = time.time()
 
     for fn in final_files:
@@ -251,6 +275,11 @@ def main():
 
             text = strip_gutenberg_header_footer(raw)
             text = clean_text(text)
+
+            if not is_english(text):
+                non_english += 1
+                continue
+
             paragraphs = split_paragraphs(text)
 
             all_paragraphs.extend(paragraphs)
@@ -270,7 +299,7 @@ def main():
             skipped += 1
 
     elapsed = time.time() - start_time
-    print(f"\nProcessed: {processed} files, Skipped: {skipped}")
+    print(f"\nProcessed: {processed} files, Skipped: {skipped}, Non-English: {non_english}")
     print(f"Total paragraphs: {len(all_paragraphs)}")
     print(f"Total characters: {total_chars:,} ({total_chars/1e9:.2f} GB)")
     print(f"Time: {elapsed/60:.1f} min")

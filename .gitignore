@@ -16,3 +16,7 @@ plots/
 # Python
 __pycache__/
 *.pyc
+
+# Exceptions: small text files in sub-experiments are OK to track
+!cat_in_the_hat_tiny/txt_local/
+!cat_in_the_hat_tiny/terminal_logs/
