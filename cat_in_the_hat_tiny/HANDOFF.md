@@ -5,12 +5,17 @@ Last updated: 2026-04-23 10:15 by Claude Opus (Mac Studio session)
 ## Current State
 
 - **No training has been run yet.**
-- All files are in place and ready.
-- Launch training with: `sh/train_cat_hat.sh`
+- **The text file is NOT in the repo** (copyright). It must be
+  provided manually at: `txt_local/the_cat_in_the_hat_2b_lower.txt`
+  Ralph has a copy on the Mac Studio at:
+  `~/0_Home_Folder_Working_Mac_Studio/tiny_transformer/txt_local/the_cat_in_the_hat_2b_lower.txt`
+- Once the text is in place, launch training with: `sh/train_cat_hat.sh`
 - Training should take minutes on the M3 MacBook.
 
 ## TODO
 
+- **TODO: Copy the text file** into `txt_local/` before training.
+  Verify it exists: `ls txt_local/the_cat_in_the_hat_2b_lower.txt`
 - **Run training** and verify loss decreases
 - **Extract and plot 3D embeddings** after training — see README.md
   for how to extract embeddings from the checkpoint
