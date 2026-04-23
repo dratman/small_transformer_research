@@ -32,4 +32,4 @@ Last updated: 2026-04-23 10:15 by Claude Opus (Mac Studio session)
 This experiment was set up by a Claude Opus instance on the Mac Studio
 on 2026-04-23. The code (model.py, train.py, etc.) was copied from the
 bpe_vs_char_model_comparison project. Ralph wants to run this on the
-M3 MacBook (36 GB RAM).
+M3 MacBook (64 GB RAM).
