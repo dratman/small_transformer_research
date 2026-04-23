@@ -2,30 +2,27 @@
 #
 # train_cat_hat.sh - Tiny transformer on The Cat In The Hat
 #
-# n_embd=3: every word embedding is a 3D point you can visualize.
-# n_layer=16: deep network to compensate for narrow embeddings.
-# Previous run with n_layer=2 had only 1,260 parameters and
-# plateaued at loss 4.0 — too few parameters to learn the text.
+# n_embd=4: visualizable as 3D + color, or two 2D plots.
+# n_head=2: each head gets 2 dimensions.
+# n_layer=16: deep to compensate for narrow embeddings.
 #
-# vocab_size 256: BPE with enough tokens to cover all words + subwords
-# n_head 1: must divide n_embd=3
-# block_size 64: ~40 words of context
-# batch_size 4: small text, small batches
-# learning_rate 0.001: higher lr for tiny model
+# Previous runs:
+#   n_embd=3, n_layer=2  (1,260 params): plateaued at loss 4.0
+#   n_embd=3, n_layer=16 (3,318 params): plateaued at loss 3.8
+#   Both too few params. n_embd=3 is the bottleneck, not depth.
 #
-# NOTE: Run this on the M3, not the Mac Studio (which is running
-# the large BPE training).
+# NOTE: Run this on the M3, not the Mac Studio.
 #
 
 sh/train.sh \
     --input txt_local/the_cat_in_the_hat_2b_lower.txt \
-    --output pt/cat_hat_3d.pt \
+    --output pt/cat_hat_4d.pt \
     --mode continuous \
     --tokenizer bpe \
     --vocab_size 256 \
     --n_layer 16 \
-    --n_head 1 \
-    --n_embd 3 \
+    --n_head 2 \
+    --n_embd 4 \
     --block_size 64 \
     --batch_size 4 \
     --max_iters 50000 \
